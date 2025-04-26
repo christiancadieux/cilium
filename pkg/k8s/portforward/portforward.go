@@ -133,7 +133,9 @@ func (pf *PortForwarder) GetNamespaceInfo(ctx context.Context, ns string) error 
 
 	_, err := pf.clientset.CoreV1().Pods(ns).List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return fmt.Errorf("namespace %s not allowed - review your CCP-CON team access [%v]", ns, err)
+		errS := strings.Replace(err.Error(), `resource "pods" in API group ""`, "resources", 1)
+		errS = strings.Replace(errS, "pods is forbidden: ", "", 1)
+		return fmt.Errorf("namespace %s not allowed - review your CCP-CON team access [%v]", ns, errS)
 	}
 	return nil
 
