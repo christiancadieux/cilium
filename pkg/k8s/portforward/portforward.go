@@ -129,18 +129,45 @@ type PortForwardServiceResult struct {
 	ForwardedPort ForwardedPort
 }
 
+func (pf *PortForwarder) GetNamespaceInfo(ctx context.Context, ns string) error {
+
+	_, err := pf.clientset.CoreV1().Pods(ns).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("namespace %s not allowed - review your CCP-CON team access [%v]", ns, err)
+	}
+	return nil
+
+}
+
+func (pf *PortForwarder) GetHubbleNode(ctx context.Context, svcName string) (string, error) {
+
+	namespace := "kube-system"
+	svc, err := pf.clientset.CoreV1().Services(namespace).Get(ctx, svcName, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to get service %q: %w", svcName, err)
+	}
+
+	pod, err := pf.GetFirstPodForService(ctx, svc)
+	if err != nil {
+		return "", fmt.Errorf("failed to get service %q: %w", svcName, err)
+	}
+	return pod.Spec.NodeName, nil
+
+}
+
 // PortForwardService executes in a goroutine a port forward command towards one of the pod behind a
 // service. If `localPort` is 0, a random port is selected. If `svcPort` is 0, uses the first port
 // configured on the service.
 //
 // To stop the port-forwarding, use the context by cancelling it.
 func (pf *PortForwarder) PortForwardService(ctx context.Context, namespace, name string, localPort, svcPort int32) (*PortForwardServiceResult, error) {
+
 	svc, err := pf.clientset.CoreV1().Services(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get service %q: %w", name, err)
 	}
 
-	pod, err := pf.getFirstPodForService(ctx, svc)
+	pod, err := pf.GetFirstPodForService(ctx, svc)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get service %q: %w", name, err)
 	}
@@ -174,7 +201,7 @@ func (pf *PortForwarder) PortForwardService(ctx context.Context, namespace, name
 
 // getFirstPodForService returns the first pod in the list of pods matching the service selector,
 // sorted from most to less active (see `podutils.ActivePods` for more details).
-func (pf *PortForwarder) getFirstPodForService(ctx context.Context, svc *corev1.Service) (*corev1.Pod, error) {
+func (pf *PortForwarder) GetFirstPodForService(ctx context.Context, svc *corev1.Service) (*corev1.Pod, error) {
 	selector := labels.SelectorFromSet(svc.Spec.Selector)
 	podList, err := pf.clientset.CoreV1().Pods(svc.Namespace).List(ctx, metav1.ListOptions{LabelSelector: selector.String()})
 	if err != nil {

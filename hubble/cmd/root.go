@@ -91,6 +91,7 @@ func NewWithViper(vp *viper.Viper) *cobra.Command {
 	rootCmd.SetUsageTemplate(template.Usage)
 
 	rootCmd.SetErr(os.Stderr)
+
 	rootCmd.SetVersionTemplate("{{with .Name}}{{printf \"%s \" .}}{{end}}{{printf \"%s\" .Version}}\r\n")
 
 	rootCmd.AddCommand(
