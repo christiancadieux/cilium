@@ -129,15 +129,15 @@ type PortForwardServiceResult struct {
 	ForwardedPort ForwardedPort
 }
 
-func (pf *PortForwarder) GetNamespaceInfo(ctx context.Context, ns string) error {
+func (pf *PortForwarder) GetNamespaceInfo(ctx context.Context, ns string) (int, error) {
 
-	_, err := pf.clientset.CoreV1().Pods(ns).List(ctx, metav1.ListOptions{})
+	podlist, err := pf.clientset.CoreV1().Pods(ns).List(ctx, metav1.ListOptions{})
 	if err != nil {
 		errS := strings.Replace(err.Error(), `resource "pods" in API group ""`, "resources", 1)
 		errS = strings.Replace(errS, "pods is forbidden: ", "", 1)
-		return fmt.Errorf("namespace %s not allowed - review your CCP-CON team access [%v]", ns, errS)
+		return 0, fmt.Errorf("namespace %s not allowed - review your CCP-CON team access [%v]", ns, errS)
 	}
-	return nil
+	return len(podlist.Items), nil
 
 }
 
