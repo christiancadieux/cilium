@@ -141,19 +141,25 @@ func (pf *PortForwarder) GetNamespaceInfo(ctx context.Context, ns string) (int, 
 
 }
 
-func (pf *PortForwarder) GetHubbleNode(ctx context.Context, svcName string) (string, error) {
+func (pf *PortForwarder) GetHubbleNode(ctx context.Context, svcName string) (string, int32, error) {
 
 	namespace := "kube-system"
 	svc, err := pf.clientset.CoreV1().Services(namespace).Get(ctx, svcName, metav1.GetOptions{})
 	if err != nil {
-		return "", fmt.Errorf("failed to get service %q: %w", svcName, err)
+		return "", 0, fmt.Errorf("failed to get service %q: %w", svcName, err)
+	}
+	if svc.Spec.Ports == nil {
+		return "", 0, fmt.Errorf("no ports for service %s", svcName)
+	}
+	if len(svc.Spec.Ports) == 0 {
+		return "", 0, fmt.Errorf("NodePort not found for service %s", svcName)
 	}
 
 	pod, err := pf.GetFirstPodForService(ctx, svc)
 	if err != nil {
-		return "", fmt.Errorf("failed to get service %q: %w", svcName, err)
+		return "", 0, fmt.Errorf("failed to get service %q: %w", svcName, err)
 	}
-	return pod.Spec.NodeName, nil
+	return pod.Spec.NodeName, svc.Spec.Ports[0].NodePort, nil
 
 }
 
