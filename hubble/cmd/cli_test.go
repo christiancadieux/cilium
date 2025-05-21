@@ -74,7 +74,7 @@ Available Commands:
   completion  Generate the autocompletion script for the specified shell
   config      Modify or view hubble config
   help        Help about any command
-  list        List Hubble objects
+  list        List nodes
   observe     Observe flows and events of a Hubble server
   status      Display status of Hubble server
   version     Display detailed version information
